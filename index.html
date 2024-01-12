@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LeetCode Problems</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        .problem-list {
+            list-style-type: none;
+            padding: 0;
+            margin-top: 20px;
+        }
+        .category {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .problem-item {
+            margin-bottom: 10px;
+        }
+        .checkbox {
+            margin-right: 10px;
+        }
+        a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+<h1>LeetCode Problems</h1>
+
+<input type="file" accept=".txt" id="fileInput" />
+<button onclick="handleFile()">Load Problems</button>
+
+<ul class="problem-list" id="easyList">
+    <li class="category">Easy</li>
+    
+</ul>
+
+<ul class="problem-list" id="mediumList">
+    <li class="category">Medium</li>
+   
+</ul>
+
+<ul class="problem-list" id="hardList">
+    <li class="category">Hard</li>
+    
+</ul>
+
+<script>
+    let savedData = JSON.parse(localStorage.getItem('savedData')) || {};
+
+    function readProblemsFromFile(fileContent) {
+        const problems = { easy: [], medium: [], hard: [] };
+
+        const lines = fileContent.split('\n').map(line => line.trim());
+
+        let currentCategory = 'easy';
+
+        lines.forEach(line => {
+            if (line.startsWith('## ')) {
+                currentCategory = line.substring(3).toLowerCase();
+            } else if (line.startsWith('- ')) {
+                problems[currentCategory].push({ name: line.substring(2), checked: false });
+            }
+        });
+
+        return problems;
+    }
+
+    function handleFile() {
+        const fileInput = document.getElementById('fileInput');
+        const file = fileInput.files[0];
+
+        if (file) {
+            const reader = new FileReader();
+
+            reader.onload = function (e) {
+                const fileContent = e.target.result;
+                const problems = readProblemsFromFile(fileContent);
+
+                savedData.problems = problems;
+                savedData.checklist = savedData.checklist || {};
+
+                localStorage.setItem('savedData', JSON.stringify(savedData));
+
+                populateListsFromData(savedData.problems);
+            };
+
+            reader.readAsText(file);
+        }
+    }
+
+    function createProblemItem(line, category) {
+        const match = line.match(/\[([^\]]+)\]\(([^)]+)\)/);
+
+        if (match) {
+            const problemName = match[1];
+            const problemLink = match[2];
+
+            const listItem = document.createElement("li");
+            listItem.className = "problem-item";
+
+            const checkbox = document.createElement("input");
+            checkbox.type = "checkbox";
+            checkbox.className = "checkbox";
+            checkbox.id = `${category.toLowerCase()}-${problemName.toLowerCase().replace(/\s+/g, '-')}`;
+            checkbox.checked = savedData.checklist[checkbox.id];
+            checkbox.addEventListener('change', function () {
+                savedData.checklist[checkbox.id] = checkbox.checked;
+                localStorage.setItem('savedData', JSON.stringify(savedData));
+            });
+            listItem.appendChild(checkbox);
+
+            const link = document.createElement("a");
+            link.href = problemLink;
+            link.target = "_blank";
+            link.textContent = problemName;
+            listItem.appendChild(link);
+
+            return listItem;
+        }
+
+        return null;
+    }
+
+    function populateList(category, listId) {
+        const problemList = document.getElementById(listId);
+        savedData.problems[category].forEach(problem => {
+            const problemItem = createProblemItem(problem.name, category);
+            problemList.appendChild(problemItem);
+        });
+    }
+
+    function populateListsFromData(problems) {
+        document.getElementById('easyList').innerHTML = '<li class="category">Easy</li>';
+        document.getElementById('mediumList').innerHTML = '<li class="category">Medium</li>';
+        document.getElementById('hardList').innerHTML = '<li class="category">Hard</li>';
+
+        populateList("easy", "easyList");
+        populateList("medium", "mediumList");
+        populateList("hard", "hardList");
+    }
+
+    if (savedData.problems) {
+        populateListsFromData(savedData.problems);
+    }
+</script>
+
+</body>
+</html>
